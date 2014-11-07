@@ -10,11 +10,13 @@
 
 // Heap Variables
 char *cwd;
+int lastReturn;
 
 
 // Struct delclarations
 
 struct arguments {
+  // This handles command line arguments
   int argc;
   char *argv[30];
 };
@@ -25,9 +27,10 @@ typedef struct arguments args;
 // Function declarations
 void sigIntEventHandle(int some); // This function handles interrupts by 
                                   //returning caller to the start of the main event loop
-void graceExit(); // This handles a SIGSEGV to prevent a segmenation fault on C-d
-void charStrip(); // Removes trailing newlines
-args *getArgs(char *input);
+void graceExit();                 // This handles a SIGSEGV to prevent a segmenation fault on C-d
+void charStrip();                 // Removes trailing newlines
+args *getArgs(char *input);       // Formats arguments into a nice list
+int cd(args cdArgs);              // Function takes care of the changing of directory
 
 
 
@@ -47,7 +50,7 @@ int main(int argc, char *argv[]) {
     if (strcmp(input,"exit") >= 0) {
       int n;
       args *argEx = getArgs(input);
-      if (argEx->argv[0] != NULL) n = atoi(argEx->argv[0]);
+      if (argEx->argv[0] != NULL) n = strtol(argEx->argv[0], NULL, 10);
       exit(n);
     }
 
@@ -56,6 +59,7 @@ int main(int argc, char *argv[]) {
       chdir(cwd);
       printf("%s\n", cwd);
     } else if (strcmp(input,"cd") > 0) {
+      
       printf("%s\n", getArgs(input)->argv[0]);
     }
 
@@ -66,6 +70,7 @@ int main(int argc, char *argv[]) {
 
     *input = '\0';
   }
+
   free(input);
   
   return 0;
@@ -75,17 +80,22 @@ int main(int argc, char *argv[]) {
 args *getArgs(char *input) {
   args *retArgs = malloc(sizeof(args));
 
-  int i,j;
+  int i,j,k;
   for (i = 0; input[i] != '\0'; i++)
-    if (input[i] == ' ') j++;
+    if (input[i] == ' ')
+      for (; input[i] == ' '; i++); // This is here to remove any additional spaces between arguments
+      j++;
 
   char *ourArgs = malloc(sizeof(char)*i);
   strcpy(ourArgs,input);
+  retArgs->argc = j;
 
   j = 0;
   for (i = 0; ourArgs[i] != '\0'; i++) {
     if (ourArgs[i] == ' ') {
       ourArgs[i] = '\0';
+      for (; input[i] == ' '; i++) 
+        ourArgs[i] = '\0';
       retArgs->argv[j++] = ourArgs + i + 1;
     }
   }

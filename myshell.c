@@ -26,8 +26,11 @@ int main(int argc, char *argv[]) {
 
 
 void sigIntEventHandle(int event) {
+  signal(SIGINT, sigIntEventHandle);
   printf("\n");
-  ioLoop();
+  printf(PS1);
+  fflush(stdout);
+  return;
 }
 
 

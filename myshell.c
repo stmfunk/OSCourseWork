@@ -44,9 +44,10 @@ int main(int argc, char *argv[]) {
     charStrip(input);
 
     // This handles a call to exit
-    if (!strcmp(input,"exit")) {
-      int n = 0;
-      //obtainArgs(input);
+    if (strcmp(input,"exit") >= 0) {
+      int n;
+      args *argEx = getArgs(input);
+      if (argEx->argv[0] != NULL) n = atoi(argEx->argv[0]);
       exit(n);
     }
 

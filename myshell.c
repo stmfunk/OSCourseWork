@@ -25,21 +25,25 @@ typedef struct arguments args;
 
 
 // Function declarations
-void sigIntEventHandle(int some); // This function handles interrupts by 
-                                  //returning caller to the start of the main event loop
-void graceExit();                 // This handles a SIGSEGV to prevent a segmenation fault on C-d
-void charStrip();                 // Removes trailing newlines
-args *getArgs(char *input);       // Formats arguments into a nice list
-int cd(args cdArgs);              // Function takes care of the changing of directory
+void sigIntEventHandle(int some);                 // This function handles interrupts by 
+                                                  //returning caller to the start of the main event loop
+void graceExit();                                 // This handles a SIGSEGV to prevent a segmenation fault on C-d
+void charStrip();                                 // Removes trailing newlines
+args *getArgs(char *input);                       // Formats arguments into a nice list
+int cd(args *cdArgs);                             // Function takes care of the changing of directory
+int startSame(char *shorter, char *longer);       // Takes a shorter string and a longer string and if the start of 
+                                                  // the longer string matches the shorter string return 1
+
 
 
 
 int main(int argc, char *argv[]) {
   cwd = malloc(sizeof(char)*150);
+  getcwd(cwd, 150);
   signal(SIGINT, sigIntEventHandle);
   signal(SIGHUP, graceExit);
 
-   char *input = malloc(sizeof(char)*200);
+  char *input = malloc(sizeof(char)*200);
 
   while (1) {
     printf(PS1);
@@ -47,23 +51,18 @@ int main(int argc, char *argv[]) {
     charStrip(input);
 
     // This handles a call to exit
-    if (strcmp(input,"exit") >= 0) {
+    if (startSame("exit",input)) {
       int n;
       args *argEx = getArgs(input);
       if (argEx->argv[0] != NULL) n = strtol(argEx->argv[0], NULL, 10);
       exit(n);
     }
 
-    if (strcmp(input,"cd") == 0) {
-      cwd = getenv("HOME");
-      chdir(cwd);
-      printf("%s\n", cwd);
-    } else if (strcmp(input,"cd") > 0) {
-      
-      printf("%s\n", getArgs(input)->argv[0]);
-    }
+    if (startSame("cd",input))
+      cd(getArgs(input));
 
-    if (strcmp(input,"pwd") == 0) {
+
+    if (startSame("pwd",input)) {
       getcwd(cwd, 150);
       printf("%s\n", cwd);
     }
@@ -96,10 +95,26 @@ args *getArgs(char *input) {
       ourArgs[i] = '\0';
       for (; input[i] == ' '; i++) 
         ourArgs[i] = '\0';
-      retArgs->argv[j++] = ourArgs + i + 1;
+      retArgs->argv[j++] = ourArgs + i;
     }
   }
   return retArgs;
+}
+
+int cd(args *cdArgs) {
+  char *temp_cwd;
+  if (cdArgs->argc == 0) {
+    temp_cwd = getenv("HOME");
+  } else {
+    if (cdArgs->argv[0][0] == '/') {
+      temp_cwd = cdArgs->argv[0];
+    }
+  }
+
+  if (chdir(temp_cwd) == -1)
+    printf("cd: no such file or directory %s\n", temp_cwd);
+  else cwd = temp_cwd;
+  return 0;
 }
 
 
@@ -122,9 +137,19 @@ void charStrip(char* str) {
   int i;
   for (i = 0; ; i++)
     if (str[i] == '\0') {
-      if (str[i-1] == '\n') {
+      if (str[i-1] == '\n' || str[i-1] == ' ') {
         str[i-1] = '\0';
         return;
       }
     }
+}
+
+
+int startSame(char *shorter, char *longer) {
+  int i;
+  if (strlen(shorter) > strlen(longer)) return 0;
+  for (i = 0; shorter[i] != '\0' && longer[i] != '\0'; i++) {
+    if (shorter[i] != longer[i]) return 0;
+  }
+  return 1;
 }

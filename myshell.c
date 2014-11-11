@@ -4,13 +4,13 @@
 #include <unistd.h>
 #include <signal.h>
 
-
-#define PS1 "MyShell> "
+#define DIR_NUM 2
 
 
 // Heap Variables
 char *cwd;
 int lastReturn;
+char *prompt;
 
 
 // Struct delclarations
@@ -33,20 +33,28 @@ args *getArgs(char *input);                       // Formats arguments into a ni
 int cd(args *cdArgs);                             // Function takes care of the changing of directory
 int startSame(char *shorter, char *longer);       // Takes a shorter string and a longer string and if the start of 
                                                   // the longer string matches the shorter string return 1
+char *getLastDirectories(int n, char *path);      // Take the last n directories from the part given
 
 
 
 
 int main(int argc, char *argv[]) {
   cwd = malloc(sizeof(char)*150);
-  getcwd(cwd, 150);
   signal(SIGINT, sigIntEventHandle);
   signal(SIGHUP, graceExit);
 
   char *input = malloc(sizeof(char)*200);
 
+  prompt = malloc(sizeof(char)*80);
+
   while (1) {
-    printf(PS1);
+    getcwd(cwd, 150);
+    
+    *prompt = '\0';
+    strcat(prompt, getLastDirectories(DIR_NUM, cwd));
+    strcat(prompt, "> ");
+
+    printf("%s", prompt);
     fgets(input, 100, stdin);
     charStrip(input);
 
@@ -58,8 +66,11 @@ int main(int argc, char *argv[]) {
       exit(n);
     }
 
-    if (startSame("cd",input))
-      cd(getArgs(input));
+    if (startSame("cd",input)) {
+      args *cdArgs = getArgs(input);
+      cd(cdArgs);
+      free(cdArgs);
+    }
 
 
     if (startSame("pwd",input)) {
@@ -79,11 +90,15 @@ int main(int argc, char *argv[]) {
 args *getArgs(char *input) {
   args *retArgs = malloc(sizeof(args));
 
-  int i,j,k;
-  for (i = 0; input[i] != '\0'; i++)
-    if (input[i] == ' ')
+  int i,j,k = 0;;
+  j = 0;
+  charStrip(input);
+  for (i = 0; input[i] != '\0'; i++) {
+    if (input[i] == ' ') {
       for (; input[i] == ' '; i++); // This is here to remove any additional spaces between arguments
       j++;
+    }
+  }
 
   char *ourArgs = malloc(sizeof(char)*i);
   strcpy(ourArgs,input);
@@ -106,9 +121,7 @@ int cd(args *cdArgs) {
   if (cdArgs->argc == 0) {
     temp_cwd = getenv("HOME");
   } else {
-    if (cdArgs->argv[0][0] == '/') {
-      temp_cwd = cdArgs->argv[0];
-    }
+    temp_cwd = cdArgs->argv[0];
   }
 
   if (chdir(temp_cwd) == -1)
@@ -121,7 +134,7 @@ int cd(args *cdArgs) {
 void sigIntEventHandle(int event) {
   signal(SIGINT, sigIntEventHandle);
   printf("\n");
-  printf(PS1);
+  printf("%s", prompt);
   fflush(stdout);
   return;
 }
@@ -139,6 +152,8 @@ void charStrip(char* str) {
     if (str[i] == '\0') {
       if (str[i-1] == '\n' || str[i-1] == ' ') {
         str[i-1] = '\0';
+        i--;
+      } else {
         return;
       }
     }
@@ -152,4 +167,22 @@ int startSame(char *shorter, char *longer) {
     if (shorter[i] != longer[i]) return 0;
   }
   return 1;
+}
+
+
+char *getLastDirectories(int n, char *path) {
+  int i = 0;
+  char *c;
+  for (c = path; *c != '\0'; c++);
+  c--;
+
+  for (; c != path; c--) {
+    if (*(c+1) == '/') i++;
+    if (i == n) {
+      c += 2;
+      break;
+    }
+  }
+  if (i < n) return path;
+  else return c;
 }

@@ -9,9 +9,7 @@
 
 // Heap Variables
 char *cwd;
-int lastReturn;
 char *prompt;
-
 
 // Struct delclarations
 
@@ -19,6 +17,7 @@ struct arguments {
   // This handles command line arguments
   int argc;
   char *argv[30];
+  char *cmd;
 };
 
 typedef struct arguments args;
@@ -34,12 +33,12 @@ int cd(args *cdArgs);                             // Function takes care of the 
 int startSame(char *shorter, char *longer);       // Takes a shorter string and a longer string and if the start of 
                                                   // the longer string matches the shorter string return 1
 char *getLastDirectories(int n, char *path);      // Take the last n directories from the part given
-
-
+int newProcess(char *input);                      // This function takes care of creating a new process
 
 
 int main(int argc, char *argv[]) {
   cwd = malloc(sizeof(char)*150);
+  int returnStatus = 0;
   signal(SIGINT, sigIntEventHandle);
   signal(SIGHUP, graceExit);
 
@@ -70,14 +69,21 @@ int main(int argc, char *argv[]) {
       args *cdArgs = getArgs(input);
       cd(cdArgs);
       free(cdArgs);
+      goto clean;
     }
 
 
     if (startSame("pwd",input)) {
       getcwd(cwd, 150);
       printf("%s\n", cwd);
+      goto clean; 
     }
 
+    if (input[0] == '\n') goto clean;
+
+    newProcess(input);
+
+clean:
     *input = '\0';
   }
 
@@ -89,6 +95,7 @@ int main(int argc, char *argv[]) {
 
 args *getArgs(char *input) {
   args *retArgs = malloc(sizeof(args));
+  retArgs->cmd = malloc(sizeof(char)*80);
 
   int i,j,k = 0;;
   j = 0;
@@ -98,7 +105,13 @@ args *getArgs(char *input) {
       for (; input[i] == ' '; i++); // This is here to remove any additional spaces between arguments
       j++;
     }
+
+    if (j == 0)
+      retArgs->cmd[k++] = input[i];
   }
+
+  retArgs->cmd[k] = '\0';
+  k = 0;
 
   char *ourArgs = malloc(sizeof(char)*i);
   strcpy(ourArgs,input);
@@ -185,4 +198,18 @@ char *getLastDirectories(int n, char *path) {
   }
   if (i < n) return path;
   else return c;
+}
+
+
+int newProcess(char *input) {
+  int pid = fork();
+
+  if (pid == 0) {
+    args *cmdArgs = getArgs(input);
+    execvp(cmdArgs->cmd, cmdArgs->argv);
+    exit(0);
+  }
+  int returnStatus;
+  wait(&returnStatus);
+  return returnStatus;
 }

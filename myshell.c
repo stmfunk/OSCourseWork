@@ -79,7 +79,9 @@ int main(int argc, char *argv[]) {
       goto clean; 
     }
 
-    if (input[0] == '\n') goto clean;
+    if (strlen(input) <= 1){
+      goto clean;
+    }
 
     newProcess(input);
 
@@ -95,9 +97,8 @@ clean:
 
 args *getArgs(char *input) {
   args *retArgs = malloc(sizeof(args));
-  retArgs->cmd = malloc(sizeof(char)*80);
 
-  int i,j,k = 0;;
+  int i,j,k;
   j = 0;
   charStrip(input);
   for (i = 0; input[i] != '\0'; i++) {
@@ -106,18 +107,16 @@ args *getArgs(char *input) {
       j++;
     }
 
-    if (j == 0)
-      retArgs->cmd[k++] = input[i];
   }
 
-  retArgs->cmd[k] = '\0';
   k = 0;
 
   char *ourArgs = malloc(sizeof(char)*i);
   strcpy(ourArgs,input);
   retArgs->argc = j;
 
-  j = 0;
+  j = 1;
+  retArgs->argv[0] = ourArgs;
   for (i = 0; ourArgs[i] != '\0'; i++) {
     if (ourArgs[i] == ' ') {
       ourArgs[i] = '\0';
@@ -126,6 +125,7 @@ args *getArgs(char *input) {
       retArgs->argv[j++] = ourArgs + i;
     }
   }
+  retArgs->cmd = ourArgs;
   return retArgs;
 }
 
@@ -206,7 +206,8 @@ int newProcess(char *input) {
 
   if (pid == 0) {
     args *cmdArgs = getArgs(input);
-    execvp(cmdArgs->cmd, cmdArgs->argv);
+    if (cmdArgs->argc >= 0) execvp(cmdArgs->cmd, cmdArgs->argv);
+    else execl(cmdArgs->cmd, 0);
     exit(0);
   }
   int returnStatus;

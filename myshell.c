@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
     if (startSame("exit",input)) {
       int n;
       args *argEx = getArgs(input);
-      if (argEx->argv[0] != NULL) n = strtol(argEx->argv[0], NULL, 10);
+      if (argEx->argv[1] != NULL) n = strtol(argEx->argv[1], NULL, 10);
       exit(n);
     }
 
@@ -134,7 +134,7 @@ int cd(args *cdArgs) {
   if (cdArgs->argc == 0) {
     temp_cwd = getenv("HOME");
   } else {
-    temp_cwd = cdArgs->argv[0];
+    temp_cwd = cdArgs->argv[1];
   }
 
   if (chdir(temp_cwd) == -1)

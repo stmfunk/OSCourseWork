@@ -137,9 +137,10 @@ int cd(args *cdArgs) {
     temp_cwd = cdArgs->argv[1];
   }
 
-  if (chdir(temp_cwd) == -1)
+  if (chdir(temp_cwd) == -1) { 
     printf("cd: no such file or directory %s\n", temp_cwd);
-  else cwd = temp_cwd;
+  }
+  else getcwd(cwd, 150);
   return 0;
 }
 
@@ -202,6 +203,7 @@ char *getLastDirectories(int n, char *path) {
 
 
 int newProcess(char *input) {
+  printf("%s\n",getcwd(cwd, 150));
   int pid = fork();
 
   if (pid == 0) {
